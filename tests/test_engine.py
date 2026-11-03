@@ -135,7 +135,7 @@ class Tests(unittest.TestCase):
     def test_snapshot_rebuild_only_removes_our_stamp(self):
         from unittest.mock import Mock
         from contextlib import nullcontext
-        reader=LocalReader.__new__(LocalReader);reader.scratch=Path(self.temp.name)
+        reader=LocalReader.__new__(LocalReader);reader.scratch=Path(self.temp.name).resolve()
         reader.sns='sns\\sns.db';reader.db=Mock(workdir=self.temp.name)
         reader.db._build_lock_for.return_value=nullcontext()
         stamp=Path(self.temp.name)/'sns__sns.db.stamp';stamp.write_text('old')
