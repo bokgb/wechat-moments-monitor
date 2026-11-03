@@ -4,6 +4,34 @@
 
 这是 **1.18 独立点赞版**，只提供朋友圈监控、读取、点赞和记录管理，**不包含 AI 自动回复、私聊收发或店铺问答**。无需 AI 模型、API Key 或付费授权。
 
+## 界面预览
+
+截图中的好友姓名和朋友圈内容已打码。
+
+### 总览
+
+查看运行状态、今日和累计点赞数，以及等待处理的任务。
+
+![朋友圈助手总览](docs/images/overview.jpg)
+
+<details>
+<summary>查看任务记录</summary>
+
+按好友、状态和日期查找记录，查看发布时间和点赞确认时间。
+
+![朋友圈助手任务记录](docs/images/records.jpg)
+
+</details>
+
+<details>
+<summary>查看指定好友补赞</summary>
+
+选择好友与日期，预览朋友圈后开始补赞。
+
+![朋友圈助手指定好友补赞](docs/images/friend-backfill.jpg)
+
+</details>
+
 ## 先看这里
 
 | 项目 | 说明 |
