@@ -1,0 +1,26 @@
+WeChat Moments Monitor
+Copyright 2026 the project contributors.
+
+This project contains adapted source from:
+
+  fanyuantaier/wechatauto-replica
+  https://github.com/fanyuantaier/wechatauto-replica
+  Local reference revision: 62503d76a0db069171cb4e42e87090ad285db489
+  License: Apache License, Version 2.0
+  Files: src/read_backend/db.py, src/read_backend/logger.py,
+         src/read_backend/__init__.py
+
+The local adapted copy is marked in the affected files. Adaptations include
+integration into a scoped read-only database reader and quiet logging.
+The upstream license is retained in LICENSES/wechatauto-Apache-2.0.txt.
+
+This project also contains JSON for Modern C++ 3.11.1:
+
+  https://github.com/nlohmann/json
+  Copyright (c) 2013-2022 Niels Lohmann
+  License: MIT
+  File: native/json.hpp
+  License retained in LICENSES/nlohmann-json-MIT.txt and the source header.
+
+WeChat is a product of Tencent. This project is independent and is not an
+official Tencent or WeChat product. No WeChat program binaries are included.
