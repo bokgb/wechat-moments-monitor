@@ -39,6 +39,7 @@ def copy_dependency_licenses():
     if python_license.exists():shutil.copy2(python_license,target/'Python-LICENSE.txt')
 
 def main():
+    if hasattr(sys.stdout,'reconfigure'):sys.stdout.reconfigure(encoding='utf-8')
     if sys.platform!='win32':raise RuntimeError('Build on 64-bit Windows.')
     if struct.calcsize('P')!=8 or sys.version_info<(3,12):raise RuntimeError('Use 64-bit Python 3.12 or newer.')
     for process in __import__('psutil').process_iter(['name']):
