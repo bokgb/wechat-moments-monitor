@@ -15,12 +15,12 @@ class Tests(unittest.TestCase):
         raw=b'audited fixture';digest=hashlib.sha256(raw).hexdigest()
         with patch('native_client.psutil.process_iter',return_value=[self.process()]),patch('native_client.Path.read_bytes',return_value=raw),patch('native_client.WECHAT_DLL_SHA256',digest):
             self.assertEqual(native_client.discover(),(123,456,0x10000))
-        self.assertEqual(NATIVE_DLL,'MomentsNativeV9.dll')
+        self.assertEqual(NATIVE_DLL,'MomentsNativeV10.dll')
     def test_same_version_changed_binary_is_blocked(self):
         with patch('native_client.psutil.process_iter',return_value=[self.process()]),patch('native_client.Path.read_bytes',return_value=b'changed'):
             with self.assertRaisesRegex(native_client.NativeError,'文件与已适配版本不一致'):native_client.discover()
     def test_old_or_future_version_is_not_force_accepted(self):
-        for version in ('4.1.15.13','4.2.0.9','4.2.0.14'):
+        for version in ('4.1.15.13','4.2.0.9','4.2.0.13','4.2.0.54'):
             with self.subTest(version=version),patch('native_client.psutil.process_iter',return_value=[self.process(version)]),patch('native_client.Path.read_bytes') as read:
                 with self.assertRaisesRegex(native_client.NativeError,'暂未找到匹配'):native_client.discover()
                 read.assert_not_called()

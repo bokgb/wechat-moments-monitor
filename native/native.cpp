@@ -20,7 +20,7 @@ static bool version_ok(HMODULE module) {
     wchar_t path[32768]{};GetModuleFileNameW(module,path,32768);DWORD unused{},n=GetFileVersionInfoSizeW(path,&unused);
     if(!n||n>0x1000000)return false;auto data=static_cast<BYTE*>(HeapAlloc(GetProcessHeap(),0,n));if(!data)return false;
     VS_FIXEDFILEINFO* v{};UINT size{};bool ok=GetFileVersionInfoW(path,0,n,data)&&VerQueryValueW(data,L"\\",reinterpret_cast<void**>(&v),&size)
-        &&size>=sizeof(*v)&&v->dwFileVersionMS==MAKELONG(2,4)&&v->dwFileVersionLS==MAKELONG(13,0);
+        &&size>=sizeof(*v)&&v->dwFileVersionMS==MAKELONG(2,4)&&v->dwFileVersionLS==MAKELONG(53,0);
     HeapFree(GetProcessHeap(),0,data);return ok;
 }
 static bool compatible(uintptr_t base) {
@@ -28,8 +28,8 @@ static bool compatible(uintptr_t base) {
         auto p=reinterpret_cast<const void*>(base+signature.rva);
         if(!readable(p,16)||memcmp(p,signature.bytes,16))return false;
     }
-    auto table=reinterpret_cast<uintptr_t*>(base+0x98d42a8);
-    return readable(table,24)&&table[2]==base+0x4169600;
+    auto table=reinterpret_cast<uintptr_t*>(base+0x98b3a88);
+    return readable(table,24)&&table[2]==base+0x40a6980;
 }
 static void release_shared(void* ptr) {
     auto p=static_cast<BYTE*>(ptr);if(!p)return;auto table=*reinterpret_cast<uintptr_t**>(p);
@@ -49,7 +49,7 @@ static HeldPost held_posts[1024]{};
 static uintptr_t retain_post(uintptr_t base,Pair post) {
     auto object=reinterpret_cast<uintptr_t>(post.object);
     if(!object||reinterpret_cast<uintptr_t>(post.control)!=object-16||!readable(post.control,32)
-       ||*reinterpret_cast<uintptr_t*>(post.control)!=base+0x9628148)return 0;
+       ||*reinterpret_cast<uintptr_t*>(post.control)!=base+0x95c70a8)return 0;
     auto refs=reinterpret_cast<volatile LONG*>(static_cast<BYTE*>(post.control)+8);
     if(*refs<=0||*refs>=100000)return 0;
     auto id=*reinterpret_cast<uint64_t*>(post.object);if(!id)return 0;
@@ -77,7 +77,7 @@ static void free_string(uintptr_t base,BYTE* value) {
     if(capacity<16)return;
     auto pointer=*reinterpret_cast<uintptr_t*>(value);size_t bytes=static_cast<size_t>(capacity+1);
     if(bytes>=0x1000){auto raw=*reinterpret_cast<uintptr_t*>(pointer-8);if(pointer-raw>0x27)return;pointer=raw;bytes+=0x27;}
-    reinterpret_cast<void(*)(void*,size_t)>(base+0x76a7550)(reinterpret_cast<void*>(pointer),bytes);
+    reinterpret_cast<void(*)(void*,size_t)>(base+0x7769360)(reinterpret_cast<void*>(pointer),bytes);
 }
 // Match the native GetNextPageData caller: its response alone does not persist
 // SnsTimeLine. Queue the native storage task and await its boolean result before
@@ -90,29 +90,29 @@ static bool sync_timeline(uintptr_t base,void* service,void* page,uint64_t max_i
     if(!readable(timeline,24))return false;
     Pair future{};alignas(16) BYTE empty[32]{},unused[32]{};
     *reinterpret_cast<uint64_t*>(empty+24)=15;
-    reinterpret_cast<void*(*)(void*,Pair*,void*,uint64_t,void*,int)>(base+0x5873b20)
+    reinterpret_cast<void*(*)(void*,Pair*,void*,uint64_t,void*,int)>(base+0x5854990)
         // The storage cursor must match GetNextPageData. Zero means replace
         // the newest range; using zero for an older page removes newer rows.
         (timeline,&future,page,max_id,empty,0);
     if(!future.object)return false;
-    bool ok=reinterpret_cast<bool(*)(void*,Pair*)>(base+0x10f840)(unused,&future);
+    bool ok=reinterpret_cast<bool(*)(void*,Pair*)>(base+0x109150)(unused,&future);
     release_shared(future.control);return ok;
 }
 static DWORD refresh(uintptr_t base,uint64_t max_id,Outcome& result) {
     __try {
         Pair session{},registry{},service{};alignas(16) BYTE response[0x100]{};
         result.stage=10;
-        auto kernel=*reinterpret_cast<void**>(base+0xbd0fdf0);
+        auto kernel=*reinterpret_cast<void**>(base+0xbb6b788);
         if(!readable(kernel,0x78))return 71;
         auto table=*reinterpret_cast<uintptr_t**>(kernel);
         reinterpret_cast<void*(*)(void*,Pair*)>(table[12])(kernel,&session);
         if(!session.object)return 72;
-        reinterpret_cast<void*(*)(void*,Pair*)>(base+0x384e40)(session.object,&registry);
+        reinterpret_cast<void*(*)(void*,Pair*)>(base+0x355620)(session.object,&registry);
         if(!registry.object){release_shared(session.control);return 73;}
-        reinterpret_cast<void*(*)(void*,Pair*)>(base+0x10b2810)(registry.object,&service);
+        reinterpret_cast<void*(*)(void*,Pair*)>(base+0x1012800)(registry.object,&service);
         if(!service.object){release_shared(registry.control);release_shared(session.control);return 74;}
         result.stage=11;
-        reinterpret_cast<void*(*)(void*,void*,uint64_t,uint64_t,bool)>(base+0x3114d90)(service.object,response,max_id,0,false);
+        reinterpret_cast<void*(*)(void*,void*,uint64_t,uint64_t,bool)>(base+0x304f120)(service.object,response,max_id,0,false);
         result.stage=12;result.transport=*reinterpret_cast<int*>(response);result.api=*reinterpret_cast<int*>(response+4);
         result.refreshed=result.transport==0&&result.api==0;
         auto page=*reinterpret_cast<uintptr_t*>(response+0x28);
@@ -137,9 +137,9 @@ static DWORD refresh(uintptr_t base,uint64_t max_id,Outcome& result) {
         result.released=true;result.stage=13;return !result.refreshed?70:result.synced?0:78;
     }__except(EXCEPTION_EXECUTE_HANDLER){result.exception=GetExceptionCode();return 50;}
 }
-// Ordinary-contact album ABI verified for WeChat 4.2.0.13:
+// Ordinary-contact album ABI verified for WeChat 4.2.0.53:
 // (service, response, max_id, min_id=0, const std::string& user, scene=0).
-// Both homepage and album storage call 0x5873b20 with a vector<Pair> as
+// Both homepage and album storage call 0x5854990 with a vector<Pair> as
 // argument 3. The album call uses the username key, never the homepage key.
 static void borrowed_string(BYTE* value,const char* text) {
     size_t n=strlen(text);memset(value,0,32);
@@ -173,17 +173,17 @@ static DWORD refresh_user(uintptr_t base,uint64_t max_id,const char* user,Outcom
     __try {
         Pair session{},registry{},service{};alignas(16) BYTE response[0x100]{},username[32]{};
         borrowed_string(username,user);result.stage=10;
-        auto kernel=*reinterpret_cast<void**>(base+0xbd0fdf0);
+        auto kernel=*reinterpret_cast<void**>(base+0xbb6b788);
         if(!readable(kernel,0x78))return 71;
         auto table=*reinterpret_cast<uintptr_t**>(kernel);
         reinterpret_cast<void*(*)(void*,Pair*)>(table[12])(kernel,&session);
         if(!session.object)return 72;
-        reinterpret_cast<void*(*)(void*,Pair*)>(base+0x384e40)(session.object,&registry);
+        reinterpret_cast<void*(*)(void*,Pair*)>(base+0x355620)(session.object,&registry);
         if(!registry.object){release_shared(session.control);return 73;}
-        reinterpret_cast<void*(*)(void*,Pair*)>(base+0x10b2810)(registry.object,&service);
+        reinterpret_cast<void*(*)(void*,Pair*)>(base+0x1012800)(registry.object,&service);
         if(!service.object){release_shared(registry.control);release_shared(session.control);return 74;}
         result.stage=11;
-        reinterpret_cast<void*(*)(void*,void*,uint64_t,uint64_t,void*,int)>(base+0x3120220)
+        reinterpret_cast<void*(*)(void*,void*,uint64_t,uint64_t,void*,int)>(base+0x30599c0)
             (service.object,response,max_id,0,username,0);
         result.stage=12;result.transport=*reinterpret_cast<int*>(response);result.api=*reinterpret_cast<int*>(response+4);
         result.refreshed=result.transport==0&&result.api==0;
@@ -193,13 +193,13 @@ static DWORD refresh_user(uintptr_t base,uint64_t max_id,const char* user,Outcom
             shape=collect_album(base,page,result,true)&&collect_album(base,page+0x1d8,result,false);
             if(shape){
                 result.stage=14;
-                result.synced=(!result.items&&!max_id)||reinterpret_cast<bool(*)(void*,void*,uint64_t,void*,int)>(base+0x31086a0)
+                result.synced=(!result.items&&!max_id)||reinterpret_cast<bool(*)(void*,void*,uint64_t,void*,int)>(base+0x3042a30)
                     (service.object,page,max_id,username,0);
                 // Pinned posts have a separate native storage key, matching
                 // the album UI caller. No SQLite writes are performed here.
                 if(result.synced&&*reinterpret_cast<uintptr_t*>(page+0x1d8)!=*reinterpret_cast<uintptr_t*>(page+0x1e0)){
                     char top[280]{};strcpy_s(top,user);strcat_s(top,"_user_top");alignas(16) BYTE topkey[32]{};borrowed_string(topkey,top);
-                    result.synced=reinterpret_cast<bool(*)(void*,void*,uint64_t,void*,int)>(base+0x31086a0)
+                    result.synced=reinterpret_cast<bool(*)(void*,void*,uint64_t,void*,int)>(base+0x3042a30)
                         (service.object,page+0x1d8,0,topkey,0);
                 }
             }
@@ -217,16 +217,16 @@ static DWORD queue_refresh(uintptr_t base,uint64_t max_id,Outcome& result,const 
     auto work=static_cast<RefreshWork*>(HeapAlloc(GetProcessHeap(),HEAP_ZERO_MEMORY,sizeof(RefreshWork)));
     if(!work)return 36;work->base=base;work->max_id=max_id;if(user)strcpy_s(work->user,user);work->done=CreateEventW(nullptr,TRUE,FALSE,nullptr);
     if(!work->done){HeapFree(GetProcessHeap(),0,work);return 76;}
-    auto kernel=*reinterpret_cast<void**>(base+0xbd0fdf0);Pair queue{},future{};
-    reinterpret_cast<void*(*)(void*,Pair*)>(base+0x47310)(kernel,&queue);
+    auto kernel=*reinterpret_cast<void**>(base+0xbb6b788);Pair queue{},future{};
+    reinterpret_cast<void*(*)(void*,Pair*)>(base+0x21290)(kernel,&queue);
     if(!queue.object){CloseHandle(work->done);HeapFree(GetProcessHeap(),0,work);return 77;}
     std::function<void()> callback=[work](){
         work->code=work->user[0]?refresh_user(work->base,work->max_id,work->user,work->outcome):refresh(work->base,work->max_id,work->outcome);
         SetEvent(work->done);
     };
     alignas(16) BYTE location[64]{};
-    reinterpret_cast<void*(*)(void*,const char*,const char*,int)>(base+0x1a5f10)(location,"MomentsMonitor","moments_native.cpp",1);
-    reinterpret_cast<void*(*)(void*,Pair*,void*,void*,bool)>(base+0x3141a0)(queue.object,&future,location,&callback,true);
+    reinterpret_cast<void*(*)(void*,const char*,const char*,int)>(base+0x199cb0)(location,"MomentsMonitor","moments_native.cpp",1);
+    reinterpret_cast<void*(*)(void*,Pair*,void*,void*,bool)>(base+0x2e3340)(queue.object,&future,location,&callback,true);
     release_shared(future.control);release_shared(queue.control);
     // DLL 保留加载，超时也不释放仍可能被微信原生任务使用的 work。
     if(WaitForSingleObject(work->done,45000)!=WAIT_OBJECT_0)return 75;
@@ -239,7 +239,7 @@ static DWORD perform(uintptr_t base,uint64_t id,uintptr_t object,HANDLE cancel,O
         result.stage=1;
         if(object<0x10000||object%8||!readable(reinterpret_cast<void*>(object-16),0x3b0))return 41;
         auto control=object-16;
-        if(*reinterpret_cast<uintptr_t*>(control)!=base+0x9628148||*reinterpret_cast<uint64_t*>(object)!=id)return 42;
+        if(*reinterpret_cast<uintptr_t*>(control)!=base+0x95c70a8||*reinterpret_cast<uint64_t*>(object)!=id)return 42;
         auto refs=reinterpret_cast<volatile LONG*>(control+8);LONG count=*refs;
         while(count>0&&count<100000) {
             LONG actual=InterlockedCompareExchange(refs,count+1,count);
@@ -247,19 +247,19 @@ static DWORD perform(uintptr_t base,uint64_t id,uintptr_t object,HANDLE cancel,O
         }
         if(!result.held)return 43;
         result.stage=2;
-        if(*reinterpret_cast<uintptr_t*>(control)!=base+0x9628148||*reinterpret_cast<uint64_t*>(object)!=id) {
+        if(*reinterpret_cast<uintptr_t*>(control)!=base+0x95c70a8||*reinterpret_cast<uint64_t*>(object)!=id) {
             release_shared(reinterpret_cast<void*>(control));result.released=true;return 44;
         }
         alignas(16) BYTE params[0xe8]{},cb1[64]{},cb2[64]{},cb3[64]{};uint64_t weak[2]{};
-        auto ctor=reinterpret_cast<void*(*)(void*,void*,void*,void*,void*,uint64_t)>(base+0xf910);
-        auto sequence=reinterpret_cast<volatile LONG64*>(base+0xb48fff0);
+        auto ctor=reinterpret_cast<void*(*)(void*,void*,void*,void*,void*,uint64_t)>(base+0xf590);
+        auto sequence=reinterpret_cast<volatile LONG64*>(base+0xb433658);
         ctor(params,cb1,cb2,cb3,weak,static_cast<uint64_t>(InterlockedIncrement64(sequence)));
         result.stage=3;
         if(WaitForSingleObject(cancel,0)==WAIT_OBJECT_0) {
             release_shared(*reinterpret_cast<void**>(params+8));release_shared(reinterpret_cast<void*>(control));result.released=true;return 60;
         }
         CapturedPost captured{0,object,control,0,0};
-        auto queue_like=reinterpret_cast<void(*)(void*,void*)>(base+0x4169160);
+        auto queue_like=reinterpret_cast<void(*)(void*,void*)>(base+0x40a64e0);
         // 此入口复制帖子和回调参数，再交给微信原生任务队列；本组件没有异步回调代码。
         result.stage=4;queue_like(&captured,params);result.enqueued=true;result.stage=5;
         release_shared(*reinterpret_cast<void**>(params+8));release_shared(reinterpret_cast<void*>(control));

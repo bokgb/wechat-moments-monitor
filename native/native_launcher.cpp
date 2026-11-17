@@ -101,7 +101,7 @@ int wmain(int argc,wchar_t** argv) {
         }
     }catch(...){std::wcerr<<L"Invalid native request.\n";return 12;}
     wchar_t exe[32768]{};GetModuleFileNameW(nullptr,exe,32768);
-    std::wstring dll=exe;dll=dll.substr(0,dll.find_last_of(L"\\/"))+L"\\MomentsNativeV9.dll";
+    std::wstring dll=exe;dll=dll.substr(0,dll.find_last_of(L"\\/"))+L"\\MomentsNativeV10.dll";
     wchar_t full_report[32768]{};if(!GetFullPathNameW(argv[6],32768,full_report,nullptr)||wcslen(full_report)>=768)return 3;
     if(GetFileAttributesW(full_report)!=INVALID_FILE_ATTRIBUTES){std::wcerr<<L"Report already exists; refusing overwrite.\n";return 4;}
     HANDLE process=OpenProcess(PROCESS_QUERY_INFORMATION|PROCESS_VM_READ|PROCESS_VM_WRITE|PROCESS_VM_OPERATION|PROCESS_CREATE_THREAD,FALSE,pid);
