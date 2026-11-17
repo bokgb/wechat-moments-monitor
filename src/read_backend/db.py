@@ -1133,7 +1133,23 @@ class WeChatDB:
                         v ^ CONFIG_XOR_MASK[i % len(CONFIG_XOR_MASK)]
                         for i, v in enumerate(blob)
                     )
-                    for m in HEX_LITERAL_RE.finditer(decoded):
+                    matches = list(HEX_LITERAL_RE.finditer(decoded))
+                    if not matches and len(decoded) == 32 and decoded not in tested:
+                        # 4.2.0.13 contact.db may keep a binary SQLCipher
+                        # passphrase instead of an x'...' raw-key literal.
+                        # Derive for each database salt, then require page HMAC.
+                        tested.add(decoded)
+                        for rel, path, _ in self._db_files:
+                            if rel in keys:
+                                continue
+                            with open(path, "rb") as file:
+                                page1 = file.read(PAGE_SZ)
+                            if len(page1) != PAGE_SZ:
+                                continue
+                            candidate = _pbkdf2(decoded, page1[:16], 256000)
+                            if _verify_enc_key(candidate, page1):
+                                keys[rel] = candidate
+                    for m in matches:
                         run = m.group(1).decode().lower()
                         starts = [0]
                         if len(run) > 96:

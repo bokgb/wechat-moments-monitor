@@ -45,13 +45,13 @@ def main():
     for process in __import__('psutil').process_iter(['name']):
         if (process.info['name'] or '').lower()!='weixin.exe':continue
         try:
-            if any(Path(m.path).resolve() in {(NATIVE/'MomentsNativeV8.dll').resolve(),(DIST/'MomentsNativeV8.dll').resolve()} for m in process.memory_maps()):raise RuntimeError('The component is loaded in WeChat. Exit WeChat before rebuilding it.')
+            if any(Path(m.path).resolve() in {(NATIVE/'MomentsNativeV9.dll').resolve(),(DIST/'MomentsNativeV9.dll').resolve()} for m in process.memory_maps()):raise RuntimeError('The component is loaded in WeChat. Exit WeChat before rebuilding it.')
         except __import__('psutil').Error:pass
     if (DIST/'data').exists():raise RuntimeError('dist/MomentsMonitor contains runtime data; refusing to overwrite it.')
     vcvars=find_vcvars()
     command=NATIVE/'build.cmd'
     command.write_text('@echo off\nsetlocal\ncall "'+str(vcvars)+'" >nul\nif errorlevel 1 exit /b 1\ncd /d "%~dp0"\n'
-        'cl /nologo /utf-8 /std:c++17 /EHsc /O2 /DNDEBUG /MT /LD native.cpp /Fe:MomentsNativeV8.dll /link user32.lib version.lib\n'
+        'cl /nologo /utf-8 /std:c++17 /EHsc /O2 /DNDEBUG /MT /LD native.cpp /Fe:MomentsNativeV9.dll /link user32.lib version.lib\n'
         'if errorlevel 1 exit /b 1\n'
         'cl /nologo /utf-8 /std:c++17 /EHsc /O2 /DNDEBUG /MT native_launcher.cpp /Fe:MomentsBridge.exe /link advapi32.lib\n'
         'if errorlevel 1 exit /b 1\n',encoding='utf-8')
@@ -61,7 +61,7 @@ def main():
         '--specpath',str(ROOT/'build'),'--paths',str(ROOT/'src'),'--exclude-module','numpy','--exclude-module','pandas',
         '--exclude-module','matplotlib','--exclude-module','torch',str(ROOT/'src/app.py')],check=True)
     shutil.copytree(ROOT/'build/pyinstaller-dist/朋友圈后台监控助手',DIST,dirs_exist_ok=True)
-    for name in ('MomentsBridge.exe','MomentsNativeV8.dll'):shutil.copy2(NATIVE/name,DIST/name)
+    for name in ('MomentsBridge.exe','MomentsNativeV9.dll'):shutil.copy2(NATIVE/name,DIST/name)
     for name in ('LICENSE','NOTICE','README.md'):shutil.copy2(ROOT/name,DIST/name)
     shutil.copytree(ROOT/'LICENSES',DIST/'LICENSES',dirs_exist_ok=True)
     shutil.copytree(ROOT/'docs',DIST/'docs',dirs_exist_ok=True)
